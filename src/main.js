@@ -1,50 +1,57 @@
 import iziToast from 'izitoast';
 import 'izitoast/dist/css/iziToast.min.css';
 
-import SimpleLightbox from 'simplelightbox';
-import 'simplelightbox/dist/simple-lightbox.min.css';
-
-import { searchImages } from './js/pixabay-api';
-import { imagesTemplate } from './js/render-functions';
+import { getImages } from './js/pixabay-api';
+import { renderImages } from './js/render-functions';
 
 const form = document.querySelector('.form');
 const gallery = document.querySelector('.images-container');
 const loader = document.querySelector('.loader');
 
-form.addEventListener('submit', e => {
+form.addEventListener('submit', handleSubmit);
+
+function handleSubmit(e) {
   e.preventDefault();
+
   gallery.innerHTML = '';
+
   showLoader();
 
   const query = e.target.elements.query.value.trim();
+
   if (!query) {
     iziToast.error({
       message: 'Search field is empty',
       position: 'topRight',
     });
+
+    hideLoader();
     return;
   }
 
-  searchImages(query)
+  getImages(query)
     .then(data => {
-      if (data?.hits?.length) {
-        const markup = imagesTemplate(data.hits);
-        gallery.innerHTML = markup;
-        e.target.reset();
-        return;
+      if (data && data.hits && data.hits.length) {
+        renderImages(data.hits);
+      } else {
+        throw Error(
+          'Sorry, there are no images matching your search query. Please try again!'
+        );
       }
-      throw Error(
-        'Sorry, there are no images matching your search query. Please try again!'
-      );
     })
-    .catch(err => {
+    .catch(error => {
       iziToast.error({
         message:
-          'Sorry, there are no images matching your search query. Please try again',
+          'Sorry, there are no images matching your search query. Please try again!',
         position: 'topRight',
       });
+    })
+    .finally(() => {
+      hideLoader();
     });
-});
+
+  form.reset();
+}
 
 function showLoader() {
   loader.style.display = 'inline-block';
